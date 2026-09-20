@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\BloodDonor;
 use App\Models\BloodIssue;
+use App\Models\Municipality;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -44,7 +46,7 @@ class BloodConsumptionController extends Controller
         $lowStockType = array_key_first($inventory) ?? 'O-';
         $lowStockUnits = $inventory[$lowStockType] ?? 0;
 
-        // Active wards summary
+        // Active wards / locations summary
         $recentWards = BloodIssue::select('ward_room')
             ->selectRaw('count(*) as total')
             ->groupBy('ward_room')
@@ -55,7 +57,7 @@ class BloodConsumptionController extends Controller
 
         $topWardsSummary = !empty($recentWards) 
             ? implode(', ', array_map(fn($w) => explode(' -', $w)[0], $recentWards))
-            : 'ICU, ER, Surgery';
+            : 'Tubajon, San Jose, Basilisa';
 
         $stats = [
             'unitsIssuedToday' => (int) BloodIssue::whereDate('issued_at', today())->sum('units_issued'),
@@ -70,9 +72,17 @@ class BloodConsumptionController extends Controller
             'lowStockBloodType' => $lowStockType,
             'lowStockUnits' => $lowStockUnits,
             'totalIssuesCount' => BloodIssue::count(),
+            'totalBagsCount' => (int) BloodIssue::sum('units_issued'),
         ];
 
         $wardsList = [
+            'Tubajon',
+            'San Jose',
+            'Basilisa',
+            'Cagdianao',
+            'Dinagat',
+            'Libjo',
+            'Loreto',
             'ICU - Intensive Care Unit',
             'Emergency Trauma & Acute Care',
             'Operating Room / PACU',
@@ -81,8 +91,6 @@ class BloodConsumptionController extends Controller
             'Pediatrics & NICU',
             'Internal Medicine Ward',
             'Hemodialysis Center',
-            'Oncology & Hematology Unit',
-            'Orthopedic Ward',
         ];
 
         $bloodComponentsList = [
@@ -104,6 +112,7 @@ class BloodConsumptionController extends Controller
             'wardsList' => $wardsList,
             'bloodComponentsList' => $bloodComponentsList,
             'nextRequisitionNo' => $nextRequisitionNo,
+            'municipalities' => Municipality::all()->groupBy('province'),
         ]);
     }
 
@@ -113,36 +122,43 @@ class BloodConsumptionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'patient_name' => 'required|string|max:255',
-            'patient_hrn' => 'required|string|max:50',
+            'patient_name' => 'nullable|string|max:255',
+            'patient_hrn' => 'nullable|string|max:50',
             'ward_room' => 'required|string|max:255',
             'blood_type' => 'required|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-            'blood_component' => 'required|string|max:100',
-            'units_issued' => 'required|integer|min:1|max:50',
-            'attending_physician' => 'required|string|max:255',
-            'crossmatch_status' => 'required|string|in:Compatible,Pending Crossmatch,Emergency Uncrossmatched,Incompatible',
-            'urgency_level' => 'required|string|in:Routine,Urgent,Stat/Emergency',
-            'status' => 'required|string|in:Issued,Transfusion Ongoing,Completed,Returned/Discarded',
+            'blood_component' => 'nullable|string|max:100',
+            'units_issued' => 'required|integer|min:1|max:100',
+            'attending_physician' => 'nullable|string|max:255',
+            'crossmatch_status' => 'nullable|string|in:Compatible,Pending Crossmatch,Emergency Uncrossmatched,Incompatible',
+            'urgency_level' => 'nullable|string|in:Routine,Urgent,Stat/Emergency',
+            'status' => 'nullable|string|in:Issued,Transfusion Ongoing,Completed,Returned/Discarded',
             'requisition_no' => 'nullable|string|max:50|unique:blood_issues,requisition_no',
             'remarks' => 'nullable|string|max:1000',
+            'issued_at' => 'nullable|date',
         ]);
 
         if (empty($validated['requisition_no'])) {
             $count = BloodIssue::count() + 1;
             $validated['requisition_no'] = 'REQ-' . date('Y') . '-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
-            // Ensure unique if conflict exists
             while (BloodIssue::where('requisition_no', $validated['requisition_no'])->exists()) {
                 $count++;
                 $validated['requisition_no'] = 'REQ-' . date('Y') . '-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
             }
         }
 
+        $validated['patient_name'] = $validated['patient_name'] ?? 'Patient - ' . $validated['ward_room'];
+        $validated['patient_hrn'] = $validated['patient_hrn'] ?? 'HRN-' . rand(10000, 99999);
+        $validated['blood_component'] = $validated['blood_component'] ?? 'Packed Red Blood Cells (PRBC)';
+        $validated['attending_physician'] = $validated['attending_physician'] ?? 'Dr. G. Morales, MD';
+        $validated['crossmatch_status'] = $validated['crossmatch_status'] ?? 'Compatible';
+        $validated['urgency_level'] = $validated['urgency_level'] ?? 'Routine';
+        $validated['status'] = $validated['status'] ?? 'Issued';
         $validated['issued_by'] = auth()->user()->name ?? 'Medical Technologist';
-        $validated['issued_at'] = now();
+        $validated['issued_at'] = !empty($validated['issued_at']) ? Carbon::parse($validated['issued_at']) : now();
 
         BloodIssue::create($validated);
 
-        return redirect()->back()->with('success', "Blood unit(s) successfully issued for patient {$validated['patient_name']} under {$validated['requisition_no']}.");
+        return redirect()->back()->with('success', "Blood consumption record created for {$validated['ward_room']} ({$validated['units_issued']} bags of {$validated['blood_type']}).");
     }
 
     /**
@@ -151,23 +167,28 @@ class BloodConsumptionController extends Controller
     public function update(Request $request, BloodIssue $bloodIssue)
     {
         $validated = $request->validate([
-            'patient_name' => 'required|string|max:255',
-            'patient_hrn' => 'required|string|max:50',
+            'patient_name' => 'nullable|string|max:255',
+            'patient_hrn' => 'nullable|string|max:50',
             'ward_room' => 'required|string|max:255',
             'blood_type' => 'required|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-            'blood_component' => 'required|string|max:100',
-            'units_issued' => 'required|integer|min:1|max:50',
-            'attending_physician' => 'required|string|max:255',
-            'crossmatch_status' => 'required|string|in:Compatible,Pending Crossmatch,Emergency Uncrossmatched,Incompatible',
-            'urgency_level' => 'required|string|in:Routine,Urgent,Stat/Emergency',
-            'status' => 'required|string|in:Issued,Transfusion Ongoing,Completed,Returned/Discarded',
+            'blood_component' => 'nullable|string|max:100',
+            'units_issued' => 'required|integer|min:1|max:100',
+            'attending_physician' => 'nullable|string|max:255',
+            'crossmatch_status' => 'nullable|string|in:Compatible,Pending Crossmatch,Emergency Uncrossmatched,Incompatible',
+            'urgency_level' => 'nullable|string|in:Routine,Urgent,Stat/Emergency',
+            'status' => 'nullable|string|in:Issued,Transfusion Ongoing,Completed,Returned/Discarded',
             'requisition_no' => 'required|string|max:50|unique:blood_issues,requisition_no,' . $bloodIssue->id,
             'remarks' => 'nullable|string|max:1000',
+            'issued_at' => 'nullable|date',
         ]);
+
+        if (!empty($validated['issued_at'])) {
+            $validated['issued_at'] = Carbon::parse($validated['issued_at']);
+        }
 
         $bloodIssue->update($validated);
 
-        return redirect()->back()->with('success', "Requisition {$bloodIssue->requisition_no} updated successfully.");
+        return redirect()->back()->with('success', "Record {$bloodIssue->requisition_no} updated successfully.");
     }
 
     /**
@@ -194,6 +215,6 @@ class BloodConsumptionController extends Controller
         $reqNo = $bloodIssue->requisition_no;
         $bloodIssue->delete();
 
-        return redirect()->back()->with('success', "Issuance record {$reqNo} removed successfully.");
+        return redirect()->back()->with('success', "Record {$reqNo} removed successfully.");
     }
 }

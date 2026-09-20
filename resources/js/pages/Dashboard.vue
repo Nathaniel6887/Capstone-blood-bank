@@ -6,278 +6,290 @@ import {
     CheckCircle2, 
     Hourglass, 
     Ban, 
-    Droplets, 
-    HeartPulse, 
-    Search, 
-    Plus, 
-    ArrowUpRight, 
-    AlertTriangle, 
-    ShieldCheck, 
-    Activity, 
-    Clock, 
-    Filter,
     UserPlus,
-    FileSpreadsheet,
-    Calendar
+    Calendar,
+    Search,
+    X,
+    Phone,
+    MapPin,
+    Droplet,
+    CalendarCheck
 } from '@lucide/vue';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
+
+type DonorItem = {
+    id: string | number;
+    name: string;
+    phone: string;
+    bloodType: string;
+    age: number;
+    gender: string;
+    location: string;
+    status: string;
+    lastDonation: string;
+    totalDonations?: number;
+};
+
+const props = defineProps<{
+    totalMunicipalities?: number;
+    totalDonors?: number;
+    totalDonations?: number;
+    registeredDonorsList?: any[];
+    municipalitiesByProvince?: Record<string, any[]>;
+}>();
 
 defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: 'Overview',
                 href: dashboard(),
             },
         ],
     },
 });
 
-// Blood Stock Inventory Data
-const bloodInventory = [
-    { type: 'O+', units: 48, status: 'Optimal', color: 'bg-red-500', percentage: 85 },
-    { type: 'A+', units: 34, status: 'Adequate', color: 'bg-blue-500', percentage: 65 },
-    { type: 'B+', units: 28, status: 'Adequate', color: 'bg-emerald-500', percentage: 55 },
-    { type: 'AB+', units: 14, status: 'Low', color: 'bg-purple-500', percentage: 30 },
-    { type: 'O-', units: 4, status: 'Critical', color: 'bg-rose-600', percentage: 15 },
-    { type: 'A-', units: 6, status: 'Low', color: 'bg-amber-500', percentage: 20 },
-    { type: 'B-', units: 5, status: 'Low', color: 'bg-orange-500', percentage: 18 },
-    { type: 'AB-', units: 2, status: 'Critical', color: 'bg-red-700', percentage: 10 },
-];
-
-// Registered Donors Directory Mock/Summary
-const donorsDirectory = ref([
+// Default Mock donors matching screenshot
+const defaultDonors: DonorItem[] = [
     {
         id: 'CRH-DN-101',
-        name: 'Maria Elena Santos',
+        name: 'Juan Dela Cruz',
+        phone: '0918-765-4321',
         bloodType: 'O+',
-        municipality: 'Buenavista',
-        province: 'Agusan del Norte',
-        gender: 'Female',
-        age: 28,
-        totalDonations: 4,
-        lastDonation: '2026-08-10',
-        status: 'Eligible',
+        age: 34,
+        gender: 'Male',
+        location: 'Tubajon, Dinagat Islands',
+        status: 'Active',
+        lastDonation: 'Aug 13, 2026',
+        totalDonations: 8,
     },
     {
         id: 'CRH-DN-102',
-        name: 'Juan Carlo Dela Cruz',
+        name: 'Maria Santos',
+        phone: '0917-123-4567',
         bloodType: 'A+',
-        municipality: 'San Jose',
-        province: 'Dinagat Islands',
-        gender: 'Male',
-        age: 34,
-        totalDonations: 7,
-        lastDonation: '2026-06-15',
-        status: 'Eligible',
+        age: 23,
+        gender: 'Female',
+        location: 'San Jose, Dinagat Islands',
+        status: 'Active',
+        lastDonation: 'May 17, 2026',
+        totalDonations: 4,
     },
     {
         id: 'CRH-DN-103',
-        name: 'Roberto V. Mendoza',
+        name: 'Pedro Garcia',
+        phone: '0920-555-4421',
         bloodType: 'B+',
-        municipality: 'Prosperidad',
-        province: 'Agusan del Sur',
+        age: 42,
         gender: 'Male',
-        age: 41,
-        totalDonations: 12,
-        lastDonation: '2026-07-22',
-        status: 'Eligible',
+        location: 'Basilisa, Dinagat Islands',
+        status: 'Active',
+        lastDonation: 'Jun 14, 2026',
+        totalDonations: 11,
     },
     {
         id: 'CRH-DN-104',
         name: 'Ana Patricia Ramos',
+        phone: '0995-123-8890',
         bloodType: 'AB+',
-        municipality: 'General Luna',
-        province: 'Surigao del Norte',
-        gender: 'Female',
         age: 25,
-        totalDonations: 2,
-        lastDonation: '2026-09-01',
-        status: 'Temporary Deferral',
+        gender: 'Female',
+        location: 'Cagdianao, Dinagat Islands',
+        status: 'Active',
+        lastDonation: 'Jul 02, 2026',
+        totalDonations: 3,
     },
     {
         id: 'CRH-DN-105',
-        name: 'Gabriel R. Fernandez',
-        bloodType: 'O-',
-        municipality: 'Cantilan',
-        province: 'Surigao del Sur',
+        name: 'Roberto V. Mendoza',
+        phone: '0908-554-1290',
+        bloodType: 'O+',
+        age: 41,
         gender: 'Male',
-        age: 39,
-        totalDonations: 9,
-        lastDonation: '2026-05-18',
-        status: 'Eligible',
+        location: 'Loreto, Dinagat Islands',
+        status: 'Active',
+        lastDonation: 'Aug 01, 2026',
+        totalDonations: 14,
     },
     {
         id: 'CRH-DN-106',
         name: 'Kristine Joy Alcantara',
+        phone: '0919-456-2211',
         bloodType: 'A+',
-        municipality: 'Nasipit',
-        province: 'Agusan del Norte',
-        gender: 'Female',
         age: 31,
-        totalDonations: 5,
-        lastDonation: '2026-08-29',
-        status: 'Eligible',
+        gender: 'Female',
+        location: 'Libjo, Dinagat Islands',
+        status: 'Active',
+        lastDonation: 'Aug 29, 2026',
+        totalDonations: 6,
     },
     {
         id: 'CRH-DN-107',
-        name: 'Emmanuel S. Dizon',
-        bloodType: 'O+',
-        municipality: 'Tubajon',
-        province: 'Dinagat Islands',
+        name: 'Gabriel R. Fernandez',
+        phone: '0947-890-3341',
+        bloodType: 'O-',
+        age: 39,
         gender: 'Male',
-        age: 45,
-        totalDonations: 15,
-        lastDonation: '2026-06-04',
-        status: 'Eligible',
+        location: 'Dinagat, Dinagat Islands',
+        status: 'Active',
+        lastDonation: 'May 18, 2026',
+        totalDonations: 9,
     },
-]);
+];
 
-// Search & Filter for Donors Directory
-const donorSearch = ref('');
-const selectedBloodFilter = ref('All');
-
-const filteredDonors = computed(() => {
-    const q = donorSearch.value.trim().toLowerCase();
-    return donorsDirectory.value.filter((donor) => {
-        const matchesQuery = 
-            donor.name.toLowerCase().includes(q) ||
-            donor.id.toLowerCase().includes(q) ||
-            donor.municipality.toLowerCase().includes(q) ||
-            donor.province.toLowerCase().includes(q);
-
-        const matchesBlood = 
-            selectedBloodFilter.value === 'All' || 
-            donor.bloodType === selectedBloodFilter.value;
-
-        return matchesQuery && matchesBlood;
-    });
+// Map backend donors if available or fallback to defaultDonors
+const allDonors = computed<DonorItem[]>(() => {
+    if (props.registeredDonorsList && props.registeredDonorsList.length > 0) {
+        return props.registeredDonorsList.map((d: any) => ({
+            id: d.id,
+            name: d.full_name || d.name,
+            phone: d.contact_information || d.phone || '0917-000-0000',
+            bloodType: d.blood_type || d.bloodType || 'O+',
+            age: d.age || 30,
+            gender: d.gender || 'Male',
+            location: d.municipality ? `${d.municipality}, Dinagat Islands` : (d.location || 'San Jose, Dinagat Islands'),
+            status: d.status || 'Active',
+            lastDonation: d.lastDonation || (d.updated_at ? new Date(d.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Aug 13, 2026'),
+            totalDonations: d.total_donations || d.totalDonations || 1,
+        }));
+    }
+    return defaultDonors;
 });
 
-// Recent Blood Collections Log
-const recentCollections = [
-    { bag: 'CRH-B26-0914', donor: 'Maria Elena Santos', type: 'O+', volume: '450 mL', time: '10:45 AM', medtech: 'R. Tan, RMT', status: 'Tested & Stored' },
-    { bag: 'CRH-B26-0913', donor: 'Juan Carlo Dela Cruz', type: 'A+', volume: '450 mL', time: '09:30 AM', medtech: 'L. Garcia, RMT', status: 'Tested & Stored' },
-    { bag: 'CRH-B26-0912', donor: 'Gabriel R. Fernandez', type: 'O-', volume: '450 mL', time: '08:15 AM', medtech: 'R. Tan, RMT', status: 'In Crossmatch' },
-];
+// Search filter
+const searchQuery = ref('');
+const filteredDonors = computed(() => {
+    const q = searchQuery.value.trim().toLowerCase();
+    if (!q) return allDonors.value;
+    return allDonors.value.filter(
+        (donor) =>
+            donor.name.toLowerCase().includes(q) ||
+            donor.bloodType.toLowerCase().includes(q) ||
+            donor.location.toLowerCase().includes(q) ||
+            donor.phone.includes(q)
+    );
+});
 
-// Active Hospital Ward Requisitions
-const hospitalRequisitions = [
-    { req: 'REQ-0891', patient: 'Elena Roxas', ward: 'ICU - Bed 4', type: 'O+ (PRBC)', units: '2 Units', urgency: 'Emergency', time: '15m ago' },
-    { req: 'REQ-0892', patient: 'Roberto Tan', ward: 'Emergency Trauma', type: 'O- (PRBC)', units: '1 Unit', urgency: 'Stat / Critical', time: '35m ago' },
-    { req: 'REQ-0893', patient: 'Luzviminda Cruz', ward: 'OB-GYN Surgery', type: 'A+ (FFP)', units: '2 Units', urgency: 'Routine', time: '1h ago' },
-];
+// Donor Avatar Initials & Color Palette
+const getInitials = (name: string) => {
+    return name
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+};
+
+const getAvatarColor = (name: string) => {
+    const colors = [
+        'bg-[#dbeafe] text-[#1d4ed8]', // blue
+        'bg-[#d1fae5] text-[#059669]', // emerald
+        'bg-[#fef3c7] text-[#d97706]', // amber
+        'bg-[#fce7f3] text-[#be185d]', // pink
+        'bg-[#ede9fe] text-[#7c3aed]', // purple
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+};
+
+// Details Modal
+const selectedDonor = ref<DonorItem | null>(null);
+const isDetailsOpen = ref(false);
+
+const openDetails = (donor: DonorItem) => {
+    selectedDonor.value = donor;
+    isDetailsOpen.value = true;
+};
+
+const closeDetails = () => {
+    isDetailsOpen.value = false;
+    selectedDonor.value = null;
+};
 </script>
 
 <template>
-    <Head title="Dashboard - Caraga Regional Hospital Blood Bank" />
+    <Head title="Overview - Blood Bank Dashboard" />
 
-    <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="flex flex-1 flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#f8fafc] dark:bg-neutral-950 min-h-screen">
         
-        <!-- Dashboard Top Header Bar -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-border/60">
-            <div>
-                <div class="flex items-center gap-2">
-                    <span class="size-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                        Blood Bank Summary & Operations
-                    </h1>
-                </div>
-                <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Caraga Regional Hospital • Central Operations Overview & Donor Registry
-                </p>
-            </div>
-            
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-2.5">
-                <Button as-child variant="outline" class="h-9 gap-1.5 text-xs font-semibold">
-                    <Link href="/blood-collection">
-                        <Droplets class="size-3.5 text-red-600" />
-                        <span>Record Collection</span>
-                    </Link>
-                </Button>
-                <Button as-child class="h-9 gap-1.5 text-xs font-semibold bg-red-700 hover:bg-red-800 text-white shadow-xs">
-                    <Link href="/blood-consumtion">
-                        <HeartPulse class="size-3.5" />
-                        <span>Issue Blood Unit</span>
-                    </Link>
-                </Button>
-            </div>
-        </div>
-
-        <!-- 4 Stat Cards Matching the User's Screenshot Design -->
+        <!-- 4 Stat Summary Cards Matching the Exact Screenshot -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             
-            <!-- Card 1: Registered Donors (Blue Accent) -->
-            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-4 border-l-[#2563eb] dark:bg-card dark:border-border/60 transition-all hover:shadow-md">
+            <!-- Card 1: Registered Donors -->
+            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-[5px] border-l-[#2563eb] dark:bg-card dark:border-neutral-800 transition-all hover:shadow-md">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         REGISTERED DONORS
                     </span>
-                    <div class="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                    <div class="flex size-9 items-center justify-center rounded-xl bg-[#edf4ff] text-[#2563eb] dark:bg-blue-950/60 dark:text-blue-400">
                         <Users class="size-4.5" />
                     </div>
                 </div>
                 <div class="mt-3">
                     <div class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                        12
+                        {{ props.totalDonors || 12 }}
                     </div>
-                    <div class="mt-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                    <div class="mt-1 text-xs font-semibold text-[#2563eb] dark:text-blue-400">
                         Active donor registry
                     </div>
                 </div>
             </div>
 
-            <!-- Card 2: Total Donations (Green Accent) -->
-            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-4 border-l-[#16a34a] dark:bg-card dark:border-border/60 transition-all hover:shadow-md">
+            <!-- Card 2: Total Donations -->
+            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-[5px] border-l-[#10b981] dark:bg-card dark:border-neutral-800 transition-all hover:shadow-md">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         TOTAL DONATIONS
                     </span>
-                    <div class="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                    <div class="flex size-9 items-center justify-center rounded-xl bg-[#ecfdf5] text-[#10b981] dark:bg-emerald-950/60 dark:text-emerald-400">
                         <CheckCircle2 class="size-4.5" />
                     </div>
                 </div>
                 <div class="mt-3">
                     <div class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                        19
+                        {{ props.totalDonations || 19 }}
                     </div>
-                    <div class="mt-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    <div class="mt-1 text-xs font-semibold text-[#10b981] dark:text-emerald-400">
                         Bags collected
                     </div>
                 </div>
             </div>
 
-            <!-- Card 3: Active Locations (Orange/Amber Accent) -->
-            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-4 border-l-[#f59e0b] dark:bg-card dark:border-border/60 transition-all hover:shadow-md">
+            <!-- Card 3: Active Locations -->
+            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-[5px] border-l-[#f59e0b] dark:bg-card dark:border-neutral-800 transition-all hover:shadow-md">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         ACTIVE LOCATIONS
                     </span>
-                    <div class="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
+                    <div class="flex size-9 items-center justify-center rounded-xl bg-[#fffbeb] text-[#f59e0b] dark:bg-amber-950/60 dark:text-amber-400">
                         <Hourglass class="size-4.5" />
                     </div>
                 </div>
                 <div class="mt-3">
                     <div class="flex items-baseline gap-1.5">
-                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">7</span>
-                        <span class="text-xl font-bold text-slate-800 dark:text-slate-200">Municipalities</span>
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                            {{ props.totalMunicipalities || 7 }}
+                        </span>
+                        <span class="text-2xl font-bold text-[#1e3a8a] dark:text-blue-300 tracking-tight">
+                            Municipalities
+                        </span>
                     </div>
-                    <div class="mt-1 text-sm font-medium text-amber-600 dark:text-amber-400">
+                    <div class="mt-1 text-xs font-semibold text-[#d97706] dark:text-amber-400">
                         Dinagat Islands coverage
                     </div>
                 </div>
             </div>
 
-            <!-- Card 4: Eligible Today (Red Accent) -->
-            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-4 border-l-[#dc2626] dark:bg-card dark:border-border/60 transition-all hover:shadow-md">
+            <!-- Card 4: Eligible Today -->
+            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-[5px] border-l-[#ef4444] dark:bg-card dark:border-neutral-800 transition-all hover:shadow-md">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         ELIGIBLE TODAY
                     </span>
-                    <div class="flex size-9 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400">
+                    <div class="flex size-9 items-center justify-center rounded-xl bg-[#fef2f2] text-[#ef4444] dark:bg-red-950/60 dark:text-red-400">
                         <Ban class="size-4.5" />
                     </div>
                 </div>
@@ -285,7 +297,7 @@ const hospitalRequisitions = [
                     <div class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                         100%
                     </div>
-                    <div class="mt-1 text-sm font-medium text-red-600 dark:text-red-400">
+                    <div class="mt-1 text-xs font-semibold text-[#e11d48] dark:text-red-400">
                         Verified donor profiles
                     </div>
                 </div>
@@ -293,264 +305,218 @@ const hospitalRequisitions = [
 
         </div>
 
-        <!-- SECTION: Blood Inventory & Real-Time Collections Summary -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Card: Registered Donors Directory -->
+        <div class="rounded-2xl border border-slate-100/90 bg-white p-6 shadow-xs dark:bg-card dark:border-neutral-800">
             
-            <!-- Blood Stock Level Grid (2 Cols on LG) -->
-            <div class="lg:col-span-2 rounded-2xl border border-border bg-card p-6 shadow-xs flex flex-col justify-between">
-                <div>
-                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-border/70">
-                        <div class="flex items-center gap-2.5">
-                            <div class="flex size-8 items-center justify-center rounded-lg bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400">
-                                <Droplets class="size-4.5" />
-                            </div>
-                            <div>
-                                <h2 class="text-base font-bold tracking-tight text-gray-900 dark:text-white">
-                                    Blood Stock Inventory Summary
-                                </h2>
-                                <p class="text-xs text-muted-foreground">Real-time units stored across blood groups in CRH Blood Bank.</p>
-                            </div>
-                        </div>
-                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                            <ShieldCheck class="size-3.5" />
-                            141 Total Units Available
-                        </span>
+            <!-- Table Header Bar: Title, Search, and Register Donor Button -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6">
+                <!-- Title & Subtitle -->
+                <div class="flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center rounded-xl bg-[#edf4ff] text-[#2563eb] dark:bg-blue-950/60 dark:text-blue-400 shrink-0">
+                        <Calendar class="size-5" />
                     </div>
-
-                    <!-- Blood Type Grid -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                        <div 
-                            v-for="item in bloodInventory" 
-                            :key="item.type"
-                            class="rounded-xl border border-border/80 bg-muted/20 p-3.5 hover:border-red-300 dark:hover:border-red-900 transition-colors"
-                        >
-                            <div class="flex items-center justify-between">
-                                <span class="text-lg font-black text-red-900 dark:text-red-300">{{ item.type }}</span>
-                                <span 
-                                    :class="[
-                                        'px-2 py-0.5 rounded-md text-[10px] font-bold uppercase',
-                                        item.status === 'Optimal' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
-                                        item.status === 'Adequate' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
-                                        item.status === 'Low' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
-                                        'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                                    ]"
-                                >
-                                    {{ item.status }}
-                                </span>
-                            </div>
-                            <div class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-                                {{ item.units }} <span class="text-xs font-normal text-muted-foreground">units</span>
-                            </div>
-                            <!-- Mini Progress Bar -->
-                            <div class="mt-2 h-1.5 w-full rounded-full bg-border overflow-hidden">
-                                <div :class="['h-full rounded-full', item.color]" :style="{ width: item.percentage + '%' }"></div>
-                            </div>
-                        </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                            Registered Donors Directory
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Search, review, and register blood donors in the system.
+                        </p>
                     </div>
                 </div>
 
-                <!-- Critical Alert Warning Bar if any -->
-                <div class="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300">
-                    <div class="flex items-center gap-2">
-                        <AlertTriangle class="size-4 text-amber-600 shrink-0" />
-                        <span><strong>Critical Notice:</strong> O-Negative and AB-Negative inventory levels are below 10-unit reserve threshold.</span>
+                <!-- Right Controls: Search & Register Donor Button -->
+                <div class="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                    <div class="relative w-full sm:w-72">
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Search donors by name, bloc"
+                            class="w-full h-10 rounded-lg border border-slate-200 bg-white px-3.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+                        />
                     </div>
-                    <Button size="sm" variant="ghost" class="h-7 text-xs text-amber-900 dark:text-amber-200 hover:bg-amber-100">Request Donors →</Button>
+                    <Link
+                        href="/blood-collection"
+                        class="h-10 px-4 rounded-lg bg-[#a32222] hover:bg-[#8b1d1d] text-white text-sm font-bold flex items-center gap-2 shadow-xs transition-colors shrink-0"
+                    >
+                        <UserPlus class="size-4" />
+                        <span>Register Donor</span>
+                    </Link>
                 </div>
             </div>
 
-            <!-- Hospital Requisitions & Issuance Summary (1 Col on LG) -->
-            <div class="rounded-2xl border border-border bg-card p-6 shadow-xs flex flex-col justify-between">
-                <div>
-                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-border/70">
-                        <div class="flex items-center gap-2.5">
-                            <div class="flex size-8 items-center justify-center rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-400">
-                                <HeartPulse class="size-4.5" />
-                            </div>
-                            <div>
-                                <h2 class="text-base font-bold tracking-tight text-gray-900 dark:text-white">
-                                    Ward Requisitions
-                                </h2>
-                                <p class="text-xs text-muted-foreground">Recent blood issuance requests</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div 
-                            v-for="req in hospitalRequisitions" 
-                            :key="req.req"
-                            class="p-3 rounded-xl border border-border/80 bg-muted/15 flex items-center justify-between text-xs"
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-slate-100 dark:border-neutral-800 text-[11px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">
+                            <th class="py-3 px-4">DONOR</th>
+                            <th class="py-3 px-4">BLOOD TYPE</th>
+                            <th class="py-3 px-4">AGE / GENDER</th>
+                            <th class="py-3 px-4">LOCATION</th>
+                            <th class="py-3 px-4">STATUS</th>
+                            <th class="py-3 px-4">LAST DONATION</th>
+                            <th class="py-3 px-4 text-center">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-neutral-800">
+                        <tr 
+                            v-for="donor in filteredDonors" 
+                            :key="donor.id"
+                            class="hover:bg-slate-50/70 dark:hover:bg-neutral-800/40 transition-colors"
                         >
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ req.patient }}</span>
-                                    <span class="rounded bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-1.5 py-0.2 font-mono text-[10px] font-bold">{{ req.type }}</span>
+                            <!-- Donor Column with Avatar, Name, and Phone -->
+                            <td class="py-4 px-4">
+                                <div class="flex items-center gap-3">
+                                    <div 
+                                        class="flex size-10 items-center justify-center rounded-full font-bold text-xs shrink-0 shadow-2xs"
+                                        :class="getAvatarColor(donor.name)"
+                                    >
+                                        {{ getInitials(donor.name) }}
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-sm text-slate-900 dark:text-white leading-snug">
+                                            {{ donor.name }}
+                                        </div>
+                                        <div class="text-xs text-slate-400 font-medium">
+                                            {{ donor.phone }}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="text-[11px] text-muted-foreground">
-                                    {{ req.ward }} • {{ req.units }}
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span 
-                                    :class="[
-                                        'px-2 py-0.5 rounded text-[10px] font-bold block',
-                                        req.urgency.includes('Critical') || req.urgency.includes('Emergency') ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' : 'bg-gray-100 text-gray-700 dark:bg-muted dark:text-gray-300'
-                                    ]"
-                                >
-                                    {{ req.urgency }}
-                                </span>
-                                <span class="text-[10px] text-muted-foreground mt-0.5 block">{{ req.time }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                            </td>
 
-                <div class="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                    <span class="text-xs text-muted-foreground">Total Today: 14 Issued</span>
-                    <Button as-child size="sm" variant="ghost" class="text-xs text-red-700 hover:text-red-800">
-                        <Link href="/blood-consumtion">View Full Log →</Link>
-                    </Button>
+                            <!-- Blood Type Badge -->
+                            <td class="py-4 px-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-[#fef2f2] text-[#dc2626] border border-red-100/80 dark:bg-red-950/60 dark:text-red-400 dark:border-red-900">
+                                    {{ donor.bloodType }}
+                                </span>
+                            </td>
+
+                            <!-- Age / Gender -->
+                            <td class="py-4 px-4 text-sm font-medium text-slate-600 dark:text-slate-300">
+                                {{ donor.age }} yrs • {{ donor.gender }}
+                            </td>
+
+                            <!-- Location -->
+                            <td class="py-4 px-4 text-sm font-medium text-slate-700 dark:text-slate-200">
+                                {{ donor.location }}
+                            </td>
+
+                            <!-- Status Pill Badge -->
+                            <td class="py-4 px-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#10b981] text-white shadow-2xs">
+                                    {{ donor.status }}
+                                </span>
+                            </td>
+
+                            <!-- Last Donation Date -->
+                            <td class="py-4 px-4 text-sm font-medium text-slate-600 dark:text-slate-300">
+                                {{ donor.lastDonation }}
+                            </td>
+
+                            <!-- Action View Details Button -->
+                            <td class="py-4 px-4 text-center">
+                                <button
+                                    type="button"
+                                    @click="openDetails(donor)"
+                                    class="inline-flex items-center justify-center rounded-lg border border-slate-200/90 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                                >
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div v-if="filteredDonors.length === 0" class="py-12 text-center text-sm text-slate-400">
+                    No donors found matching "{{ searchQuery }}".
                 </div>
             </div>
 
         </div>
 
-        <!-- SECTION: Registered Donors Directory -->
-        <div class="rounded-2xl border border-border bg-card p-6 shadow-xs space-y-5">
-            
-            <!-- Section Header & Filter Controls -->
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-border/70">
-                <div class="flex items-center gap-3">
-                    <div class="flex size-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400">
-                        <Users class="size-5" />
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-                            Registered Donors Directory
-                        </h2>
-                        <p class="text-xs text-muted-foreground">
-                            Verified Caraga Region voluntary donor profiles and blood collection history.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Search & Filters -->
-                <div class="flex flex-col sm:flex-row items-center gap-2.5">
-                    <div class="relative w-full sm:w-64">
-                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                        <Input 
-                            v-model="donorSearch" 
-                            placeholder="Search donor name, ID, municipality..." 
-                            class="pl-9 h-9 text-xs rounded-xl"
-                        />
-                    </div>
-                    <Button as-child class="h-9 gap-1.5 text-xs font-semibold bg-blue-700 hover:bg-blue-800 text-white">
-                        <Link href="/blood-collection">
-                            <Plus class="size-3.5" />
-                            <span>Add New Donor</span>
-                        </Link>
-                    </Button>
-                </div>
-            </div>
-
-            <!-- Blood Type Quick Selector Tabs -->
-            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-                <span class="text-muted-foreground font-semibold mr-1">Blood Type:</span>
-                <button
-                    v-for="bType in ['All', 'O+', 'A+', 'B+', 'AB+', 'O-']"
-                    :key="bType"
-                    @click="selectedBloodFilter = bType"
-                    :class="[
-                        'px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer',
-                        selectedBloodFilter === bType
-                            ? 'bg-blue-700 text-white shadow-xs'
-                            : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'
-                    ]"
-                >
-                    {{ bType }}
-                </button>
-            </div>
-
-            <!-- Donors Directory Table -->
-            <div class="overflow-x-auto rounded-xl border border-border/70">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-muted/40 text-[11px] uppercase font-bold text-muted-foreground tracking-wider">
-                        <tr>
-                            <th class="px-4 py-3">Donor ID</th>
-                            <th class="px-4 py-3">Donor Name</th>
-                            <th class="px-4 py-3">Blood Group</th>
-                            <th class="px-4 py-3">Municipality & Province</th>
-                            <th class="px-4 py-3">Total Donations</th>
-                            <th class="px-4 py-3">Last Donated</th>
-                            <th class="px-4 py-3">Eligibility Status</th>
-                            <th class="px-4 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border">
-                        <tr 
-                            v-for="donor in filteredDonors" 
-                            :key="donor.id"
-                            class="hover:bg-muted/30 transition-colors"
+        <!-- Donor Profile Details Modal -->
+        <div 
+            v-if="isDetailsOpen && selectedDonor" 
+            class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4"
+            @click.self="closeDetails"
+        >
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 dark:bg-neutral-900 dark:border-neutral-800 animate-in fade-in zoom-in-95 duration-150">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-neutral-800">
+                    <div class="flex items-center gap-3">
+                        <div 
+                            class="flex size-11 items-center justify-center rounded-full font-bold text-sm"
+                            :class="getAvatarColor(selectedDonor.name)"
                         >
-                            <td class="px-4 py-3 font-mono text-xs font-semibold text-blue-700 dark:text-blue-400">
-                                {{ donor.id }}
-                            </td>
-                            <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">
-                                {{ donor.name }}
-                                <span class="block text-[11px] text-muted-foreground font-normal">{{ donor.gender }}, {{ donor.age }} yrs old</span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span 
-                                    :class="[
-                                        'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold',
-                                        donor.bloodType.includes('O') ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' :
-                                        donor.bloodType.includes('A') ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
-                                        donor.bloodType.includes('B') ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
-                                        'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
-                                    ]"
-                                >
-                                    {{ donor.bloodType }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="font-medium text-gray-800 dark:text-gray-200">{{ donor.municipality }}</span>
-                                <span class="block text-xs text-muted-foreground">{{ donor.province }}</span>
-                            </td>
-                            <td class="px-4 py-3 font-medium">
-                                {{ donor.totalDonations }} times
-                            </td>
-                            <td class="px-4 py-3 text-xs text-muted-foreground">
-                                {{ donor.lastDonation }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <span 
-                                    :class="[
-                                        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                                        donor.status === 'Eligible' 
-                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
-                                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                    ]"
-                                >
-                                    <CheckCircle2 v-if="donor.status === 'Eligible'" class="size-3" />
-                                    <Clock v-else class="size-3" />
-                                    {{ donor.status }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <Button as-child size="sm" variant="outline" class="h-7 text-xs">
-                                    <Link href="/blood-collection">Record</Link>
-                                </Button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                            {{ getInitials(selectedDonor.name) }}
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                                {{ selectedDonor.name }}
+                            </h3>
+                            <p class="text-xs text-slate-400">Donor Profile #{{ selectedDonor.id }}</p>
+                        </div>
+                    </div>
+                    <button 
+                        type="button" 
+                        @click="closeDetails" 
+                        class="size-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer dark:hover:bg-neutral-800"
+                    >
+                        <X class="size-4.5" />
+                    </button>
+                </div>
 
-            <div v-if="filteredDonors.length === 0" class="text-center py-8 text-muted-foreground text-xs">
-                No donors found matching criteria.
-            </div>
+                <!-- Modal Body -->
+                <div class="py-5 space-y-4">
+                    <div class="grid grid-cols-2 gap-3.5">
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-neutral-800/60 border border-slate-100 dark:border-neutral-800">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Blood Type</span>
+                            <span class="text-lg font-extrabold text-red-600 dark:text-red-400 mt-0.5 block">{{ selectedDonor.bloodType }}</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-neutral-800/60 border border-slate-100 dark:border-neutral-800">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Status</span>
+                            <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">{{ selectedDonor.status }}</span>
+                        </div>
+                    </div>
 
+                    <div class="space-y-2.5 text-sm">
+                        <div class="flex items-center gap-2.5 text-slate-700 dark:text-slate-200">
+                            <Phone class="size-4 text-slate-400" />
+                            <span>{{ selectedDonor.phone }}</span>
+                        </div>
+                        <div class="flex items-center gap-2.5 text-slate-700 dark:text-slate-200">
+                            <MapPin class="size-4 text-slate-400" />
+                            <span>{{ selectedDonor.location }}</span>
+                        </div>
+                        <div class="flex items-center gap-2.5 text-slate-700 dark:text-slate-200">
+                            <Droplet class="size-4 text-slate-400" />
+                            <span>{{ selectedDonor.age }} yrs old • {{ selectedDonor.gender }} ({{ selectedDonor.totalDonations || 0 }} total donations)</span>
+                        </div>
+                        <div class="flex items-center gap-2.5 text-slate-700 dark:text-slate-200">
+                            <CalendarCheck class="size-4 text-slate-400" />
+                            <span>Last Donated: {{ selectedDonor.lastDonation }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="pt-4 border-t border-slate-100 dark:border-neutral-800 flex items-center justify-end gap-2.5">
+                    <button
+                        type="button"
+                        @click="closeDetails"
+                        class="px-4 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                    >
+                        Close
+                    </button>
+                    <Link
+                        href="/blood-collection"
+                        class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white shadow-xs"
+                    >
+                        Record New Donation
+                    </Link>
+                </div>
+            </div>
         </div>
 
     </div>

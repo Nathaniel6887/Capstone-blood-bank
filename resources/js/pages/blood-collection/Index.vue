@@ -16,12 +16,15 @@ import {
     MapPin, 
     Building, 
     Calendar,
-    AlertCircle
+    AlertCircle,
+    Eye
 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import CreateModal from './Create.vue';
+import ViewModal from './View.vue';
 
 defineOptions({
     layout: {
@@ -82,12 +85,16 @@ const searchQuery = ref('');
 const selectedBloodTypeFilter = ref('All');
 
 // Modal States
-const isModalOpen = ref(false);
-const isEditing = ref(false);
+const isCreateOpen = ref(false);
+const createModalInitialTab = ref<'new' | 'returning'>('new');
+const isViewOpen = ref(false);
+const selectedDonorForView = ref<BloodDonorRecord | null>(null);
+
+const isEditModalOpen = ref(false);
 const editingDonorId = ref<number | null>(null);
 
-// Inertia Form for Add / Edit
-const form = useForm({
+// Inertia Form for Edit
+const editForm = useForm({
     full_name: '',
     blood_type: 'O+',
     age: 25,
@@ -98,64 +105,48 @@ const form = useForm({
     total_donations: 1,
 });
 
-const bloodTypes = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
+const bloodTypes = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-'];
 
 // Open Modal for New Collection
-const openCreateModal = () => {
-    isEditing.value = false;
-    editingDonorId.value = null;
-    form.reset();
-    form.clearErrors();
-    form.blood_type = 'O+';
-    form.gender = 'Male';
-    form.age = 25;
-    form.total_donations = 1;
-    // Set default municipality if available
-    const firstProv = Object.keys(props.municipalities)[0];
-    if (firstProv && props.municipalities[firstProv]?.length > 0) {
-        form.municipality = props.municipalities[firstProv][0].name;
-    } else {
-        form.municipality = 'Buenavista';
-    }
-    isModalOpen.value = true;
+const openCreateModal = (tab: 'new' | 'returning' = 'new') => {
+    createModalInitialTab.value = tab;
+    isCreateOpen.value = true;
+};
+
+// Open Modal for View
+const openViewModal = (donor: BloodDonorRecord) => {
+    selectedDonorForView.value = donor;
+    isViewOpen.value = true;
 };
 
 // Open Modal for Edit
 const openEditModal = (donor: BloodDonorRecord) => {
-    isEditing.value = true;
     editingDonorId.value = donor.id;
-    form.clearErrors();
-    form.full_name = donor.full_name;
-    form.blood_type = donor.blood_type;
-    form.age = donor.age;
-    form.gender = donor.gender;
-    form.barangay = donor.barangay;
-    form.municipality = donor.municipality;
-    form.contact_information = donor.contact_information;
-    form.total_donations = donor.total_donations;
-    isModalOpen.value = true;
+    editForm.clearErrors();
+    editForm.full_name = donor.full_name;
+    editForm.blood_type = donor.blood_type;
+    editForm.age = donor.age;
+    editForm.gender = donor.gender;
+    editForm.barangay = donor.barangay;
+    editForm.municipality = donor.municipality;
+    editForm.contact_information = donor.contact_information;
+    editForm.total_donations = donor.total_donations;
+    isEditModalOpen.value = true;
 };
 
-// Close Modal
-const closeModal = () => {
-    isModalOpen.value = false;
-    form.reset();
+// Close Edit Modal
+const closeEditModal = () => {
+    isEditModalOpen.value = false;
+    editForm.reset();
 };
 
-// Submit Form
-const submitForm = () => {
-    if (isEditing.value && editingDonorId.value) {
-        form.put(`/blood-collection/${editingDonorId.value}`, {
+// Submit Edit Form
+const submitEditForm = () => {
+    if (editingDonorId.value) {
+        editForm.put(`/blood-collection/${editingDonorId.value}`, {
             preserveScroll: true,
             onSuccess: () => {
-                closeModal();
-            },
-        });
-    } else {
-        form.post('/blood-collection', {
-            preserveScroll: true,
-            onSuccess: () => {
-                closeModal();
+                closeEditModal();
             },
         });
     }
@@ -220,14 +211,23 @@ const filteredDonors = computed(() => {
                 </div>
             </div>
             
-            <div class="flex items-center gap-3">
-                <Button 
-                    @click="openCreateModal"
-                    class="bg-red-700 hover:bg-red-800 text-white font-semibold rounded-xl shadow-md shadow-red-900/20 gap-2 h-10 px-4 cursor-pointer transition-all active:scale-[0.99]"
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <button
+                    type="button"
+                    @click="openCreateModal('returning')"
+                    class="h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                >
+                    <HeartPulse class="size-4 text-red-600" />
+                    <span>Returning Donor</span>
+                </button>
+                <button 
+                    type="button"
+                    @click="openCreateModal('new')"
+                    class="h-10 px-4 rounded-xl bg-[#a32222] hover:bg-[#8b1d1d] text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
                 >
                     <Plus class="size-4" />
                     <span>New Donor Collection</span>
-                </Button>
+                </button>
             </div>
         </div>
 
@@ -407,13 +407,24 @@ const filteredDonors = computed(() => {
                             <!-- Action -->
                             <td class="px-4 py-3.5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    <!-- View Details button -->
+                                    <button 
+                                        type="button" 
+                                        @click="openViewModal(donor)"
+                                        title="View complete donor profile and donation history"
+                                        class="h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold gap-1 inline-flex items-center cursor-pointer shadow-2xs dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                    >
+                                        <Eye class="size-3.5 text-slate-500" />
+                                        <span>View</span>
+                                    </button>
+
                                     <!-- Record +1 donation button -->
                                     <Button 
                                         size="sm" 
                                         variant="outline" 
                                         @click="incrementDonation(donor)"
                                         title="Record new donation bag for this donor"
-                                        class="h-8 px-2.5 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 gap-1"
+                                        class="h-8 px-2.5 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 gap-1 cursor-pointer"
                                     >
                                         <PlusCircle class="size-3.5" />
                                         <span>+1 Donation</span>
@@ -425,7 +436,7 @@ const filteredDonors = computed(() => {
                                         variant="ghost" 
                                         @click="openEditModal(donor)"
                                         title="Edit donor details"
-                                        class="size-8 p-0 text-muted-foreground hover:text-blue-700"
+                                        class="size-8 p-0 text-muted-foreground hover:text-blue-700 cursor-pointer"
                                     >
                                         <Edit class="size-4" />
                                     </Button>
@@ -436,7 +447,7 @@ const filteredDonors = computed(() => {
                                         variant="ghost" 
                                         @click="deleteDonor(donor)"
                                         title="Delete record"
-                                        class="size-8 p-0 text-muted-foreground hover:text-red-700"
+                                        class="size-8 p-0 text-muted-foreground hover:text-red-700 cursor-pointer"
                                     >
                                         <Trash2 class="size-4" />
                                     </Button>
@@ -463,8 +474,8 @@ const filteredDonors = computed(() => {
                 </p>
                 <Button 
                     v-if="!searchQuery"
-                    @click="openCreateModal"
-                    class="mt-4 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-xl text-xs gap-1.5"
+                    @click="openCreateModal('new')"
+                    class="mt-4 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-xl text-xs gap-1.5 cursor-pointer"
                 >
                     <Plus class="size-4" />
                     <span>Record First Donor Collection</span>
@@ -473,9 +484,25 @@ const filteredDonors = computed(() => {
 
         </div>
 
-        <!-- NEW / EDIT DONOR COLLECTION MODAL DIALOG -->
+        <!-- CREATE MODAL COMPONENT (First-Time & Returning Donor Tabs) -->
+        <CreateModal 
+            :is-open="isCreateOpen"
+            :donors="props.donors"
+            :municipalities="props.municipalities"
+            :initial-tab="createModalInitialTab"
+            @close="isCreateOpen = false"
+        />
+
+        <!-- VIEW MODAL COMPONENT (Donor Profile & Complete Donation History) -->
+        <ViewModal 
+            :is-open="isViewOpen"
+            :donor="selectedDonorForView"
+            @close="isViewOpen = false"
+        />
+
+        <!-- EDIT DONOR MODAL DIALOG -->
         <div 
-            v-if="isModalOpen"
+            v-if="isEditModalOpen"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto"
         >
             <div class="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl transition-all my-8 max-h-[90vh] overflow-y-auto">
@@ -483,20 +510,20 @@ const filteredDonors = computed(() => {
                 <!-- Modal Header -->
                 <div class="flex items-center justify-between pb-4 border-b border-border">
                     <div class="flex items-center gap-2.5">
-                        <div class="flex size-9 items-center justify-center rounded-xl bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400">
-                            <Droplets class="size-5" />
+                        <div class="flex size-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400">
+                            <Edit class="size-5" />
                         </div>
                         <div>
                             <h2 class="text-lg font-bold text-gray-900 dark:text-white">
-                                {{ isEditing ? 'Edit Donor Collection' : 'New Donor Collection' }}
+                                Edit Donor Collection
                             </h2>
                             <p class="text-xs text-muted-foreground">
-                                {{ isEditing ? 'Update donor details and collection records' : 'Register a voluntary or replacement blood donor' }}
+                                Update donor details and collection records
                             </p>
                         </div>
                     </div>
                     <button 
-                        @click="closeModal"
+                        @click="closeEditModal"
                         class="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
                     >
                         <X class="size-5" />
@@ -504,113 +531,113 @@ const filteredDonors = computed(() => {
                 </div>
 
                 <!-- Form -->
-                <form @submit.prevent="submitForm" class="space-y-4 pt-4">
+                <form @submit.prevent="submitEditForm" class="space-y-4 pt-4">
                     
                     <!-- Full Name -->
                     <div class="space-y-1.5">
-                        <Label for="full_name" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                        <Label for="edit_full_name" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                             Full Name <span class="text-red-600">*</span>
                         </Label>
                         <Input 
-                            id="full_name"
-                            v-model="form.full_name"
+                            id="edit_full_name"
+                            v-model="editForm.full_name"
                             placeholder="e.g. Juan C. Dela Cruz"
                             required
                             class="h-10 text-sm rounded-xl"
                         />
-                        <div v-if="form.errors.full_name" class="text-xs text-red-600">{{ form.errors.full_name }}</div>
+                        <div v-if="editForm.errors.full_name" class="text-xs text-red-600">{{ editForm.errors.full_name }}</div>
                     </div>
 
                     <!-- Blood Type & Gender -->
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1.5">
-                            <Label for="blood_type" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                            <Label for="edit_blood_type" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                                 Blood Type <span class="text-red-600">*</span>
                             </Label>
                             <select
-                                id="blood_type"
-                                v-model="form.blood_type"
+                                id="edit_blood_type"
+                                v-model="editForm.blood_type"
                                 class="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm font-semibold focus:ring-2 focus:ring-red-600/20 focus:border-red-600 outline-none"
                             >
                                 <option v-for="type in bloodTypes" :key="type" :value="type">{{ type }}</option>
                             </select>
-                            <div v-if="form.errors.blood_type" class="text-xs text-red-600">{{ form.errors.blood_type }}</div>
+                            <div v-if="editForm.errors.blood_type" class="text-xs text-red-600">{{ editForm.errors.blood_type }}</div>
                         </div>
 
                         <div class="space-y-1.5">
-                            <Label for="gender" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                            <Label for="edit_gender" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                                 Gender <span class="text-red-600">*</span>
                             </Label>
                             <select
-                                id="gender"
-                                v-model="form.gender"
+                                id="edit_gender"
+                                v-model="editForm.gender"
                                 class="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm focus:ring-2 focus:ring-red-600/20 focus:border-red-600 outline-none"
                             >
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                                 <option value="Other">Other</option>
                             </select>
-                            <div v-if="form.errors.gender" class="text-xs text-red-600">{{ form.errors.gender }}</div>
+                            <div v-if="editForm.errors.gender" class="text-xs text-red-600">{{ editForm.errors.gender }}</div>
                         </div>
                     </div>
 
                     <!-- Age & Total Donations -->
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1.5">
-                            <Label for="age" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                            <Label for="edit_age" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                                 Age (16-80) <span class="text-red-600">*</span>
                             </Label>
                             <Input 
-                                id="age"
+                                id="edit_age"
                                 type="number"
-                                v-model="form.age"
+                                v-model="editForm.age"
                                 min="16"
                                 max="80"
                                 required
                                 class="h-10 text-sm rounded-xl"
                             />
-                            <div v-if="form.errors.age" class="text-xs text-red-600">{{ form.errors.age }}</div>
+                            <div v-if="editForm.errors.age" class="text-xs text-red-600">{{ editForm.errors.age }}</div>
                         </div>
 
                         <div class="space-y-1.5">
-                            <Label for="total_donations" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                            <Label for="edit_total_donations" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                                 Total Donations <span class="text-red-600">*</span>
                             </Label>
                             <Input 
-                                id="total_donations"
+                                id="edit_total_donations"
                                 type="number"
-                                v-model="form.total_donations"
+                                v-model="editForm.total_donations"
                                 min="1"
                                 required
                                 class="h-10 text-sm rounded-xl"
                             />
-                            <div v-if="form.errors.total_donations" class="text-xs text-red-600">{{ form.errors.total_donations }}</div>
+                            <div v-if="editForm.errors.total_donations" class="text-xs text-red-600">{{ editForm.errors.total_donations }}</div>
                         </div>
                     </div>
 
                     <!-- Barangay -->
                     <div class="space-y-1.5">
-                        <Label for="barangay" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                        <Label for="edit_barangay" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                             Barangay <span class="text-red-600">*</span>
                         </Label>
                         <Input 
-                            id="barangay"
-                            v-model="form.barangay"
+                            id="edit_barangay"
+                            v-model="editForm.barangay"
                             placeholder="e.g. Poblacion 1"
                             required
                             class="h-10 text-sm rounded-xl"
                         />
-                        <div v-if="form.errors.barangay" class="text-xs text-red-600">{{ form.errors.barangay }}</div>
+                        <div v-if="editForm.errors.barangay" class="text-xs text-red-600">{{ editForm.errors.barangay }}</div>
                     </div>
 
-                    <!-- Municipality / Location Dropdown (Caraga Region Grouped) -->
+                    <!-- Municipality / Location Dropdown -->
                     <div class="space-y-1.5">
-                        <Label for="municipality" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                            Municipality / Location (Caraga Region) <span class="text-red-600">*</span>
+                        <Label for="edit_municipality" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                            Municipality / Location <span class="text-red-600">*</span>
                         </Label>
                         <select
-                            id="municipality"
-                            v-model="form.municipality"
+                            id="edit_municipality"
+                            v-model="editForm.municipality"
                             required
                             class="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm focus:ring-2 focus:ring-red-600/20 focus:border-red-600 outline-none"
                         >
@@ -627,28 +654,27 @@ const filteredDonors = computed(() => {
                                     {{ item.name }} ({{ provinceName }})
                                 </option>
                             </optgroup>
-                            <!-- Fallback if municipalities not yet loaded -->
                             <option v-if="Object.keys(props.municipalities).length === 0" value="Buenavista">Buenavista</option>
                             <option v-if="Object.keys(props.municipalities).length === 0" value="San Jose">San Jose</option>
                             <option v-if="Object.keys(props.municipalities).length === 0" value="Prosperidad">Prosperidad</option>
                             <option v-if="Object.keys(props.municipalities).length === 0" value="Cantilan">Cantilan</option>
                         </select>
-                        <div v-if="form.errors.municipality" class="text-xs text-red-600">{{ form.errors.municipality }}</div>
+                        <div v-if="editForm.errors.municipality" class="text-xs text-red-600">{{ editForm.errors.municipality }}</div>
                     </div>
 
                     <!-- Contact Information -->
                     <div class="space-y-1.5">
-                        <Label for="contact_information" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                        <Label for="edit_contact_information" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                             Contact Information <span class="text-red-600">*</span>
                         </Label>
                         <Input 
-                            id="contact_information"
-                            v-model="form.contact_information"
+                            id="edit_contact_information"
+                            v-model="editForm.contact_information"
                             placeholder="e.g. 0912-345-6789 / juan@crh.gov.ph"
                             required
                             class="h-10 text-sm rounded-xl"
                         />
-                        <div v-if="form.errors.contact_information" class="text-xs text-red-600">{{ form.errors.contact_information }}</div>
+                        <div v-if="editForm.errors.contact_information" class="text-xs text-red-600">{{ editForm.errors.contact_information }}</div>
                     </div>
 
                     <!-- Action Buttons -->
@@ -656,18 +682,18 @@ const filteredDonors = computed(() => {
                         <Button 
                             type="button" 
                             variant="outline" 
-                            @click="closeModal"
+                            @click="closeEditModal"
                             class="h-10 rounded-xl"
                         >
                             Cancel
                         </Button>
                         <Button 
                             type="submit" 
-                            :disabled="form.processing"
-                            class="h-10 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold px-5"
+                            :disabled="editForm.processing"
+                            class="h-10 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-semibold px-5"
                         >
-                            <Spinner v-if="form.processing" class="mr-2" />
-                            <span>{{ isEditing ? 'Update Collection Record' : 'Save Donor Collection' }}</span>
+                            <Spinner v-if="editForm.processing" class="mr-2" />
+                            <span>Update Collection Record</span>
                         </Button>
                     </div>
 
@@ -678,3 +704,4 @@ const filteredDonors = computed(() => {
 
     </div>
 </template>
+

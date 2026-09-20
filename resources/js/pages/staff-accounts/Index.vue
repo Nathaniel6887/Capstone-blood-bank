@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { 
     Users, 
@@ -7,27 +7,22 @@ import {
     Search, 
     ShieldCheck, 
     Mail, 
-    Key, 
     Phone, 
     Building, 
     Edit, 
     Trash2, 
-    X, 
+    Eye, 
     Check, 
     Copy, 
     RefreshCw, 
-    UserCheck, 
-    ShieldAlert, 
-    Clock, 
-    Sparkles,
-    HeartPulse,
-    Droplets,
-    Stethoscope
+    HeartPulse, 
+    Stethoscope, 
+    Droplets 
 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+import CreateModal, { type UserRecord } from './Create.vue';
+import ViewModal from './View.vue';
 
 defineOptions({
     layout: {
@@ -39,20 +34,6 @@ defineOptions({
         ],
     },
 });
-
-export interface UserRecord {
-    id: number;
-    name: string;
-    email: string;
-    role: string;
-    employee_id: string;
-    department: string;
-    phone_number?: string;
-    status: 'Active' | 'Inactive' | 'On Leave' | string;
-    email_verified_at?: string;
-    created_at?: string;
-    updated_at?: string;
-}
 
 export interface StaffStats {
     totalStaff: number;
@@ -108,23 +89,11 @@ const selectedStatusFilter = ref('All');
 const selectedDepartmentFilter = ref('All');
 
 // Modal States
-const isModalOpen = ref(false);
-const isEditing = ref(false);
-const editingUserId = ref<number | null>(null);
+const isCreateModalOpen = ref(false);
+const isViewModalOpen = ref(false);
+const selectedUserForEdit = ref<UserRecord | null>(null);
+const selectedUserForView = ref<UserRecord | null>(null);
 const copiedEmployeeId = ref<string | null>(null);
-
-// Form
-const form = useForm({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
-    role: 'Registered Medical Technologist (RMT)',
-    employee_id: '',
-    department: 'Blood Bank & Transfusion Medicine',
-    phone_number: '',
-    status: 'Active',
-});
 
 // Helper: Get Initials
 const getInitials = (name: string) => {
@@ -153,61 +122,25 @@ const getRoleBadgeClasses = (role: string) => {
     return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50';
 };
 
-// Open Create Modal
+// Open Modals
 const openCreateModal = () => {
-    isEditing.value = false;
-    editingUserId.value = null;
-    form.reset();
-    form.clearErrors();
-    form.employee_id = props.nextEmployeeId;
-    form.role = props.rolesList[1] || 'Registered Medical Technologist (RMT)';
-    form.department = props.departmentsList[0] || 'Blood Bank & Transfusion Medicine';
-    form.status = 'Active';
-    isModalOpen.value = true;
+    selectedUserForEdit.value = null;
+    isCreateModalOpen.value = true;
 };
 
-// Open Edit Modal
 const openEditModal = (user: UserRecord) => {
-    isEditing.value = true;
-    editingUserId.value = user.id;
-    form.clearErrors();
-    form.name = user.name;
-    form.email = user.email;
-    form.employee_id = user.employee_id;
-    form.role = user.role;
-    form.department = user.department;
-    form.phone_number = user.phone_number || '';
-    form.status = user.status;
-    form.password = '';
-    form.password_confirmation = '';
-    isModalOpen.value = true;
+    selectedUserForEdit.value = user;
+    isCreateModalOpen.value = true;
 };
 
-// Close Modal
-const closeModal = () => {
-    isModalOpen.value = false;
-    form.reset();
-    editingUserId.value = null;
-    isEditing.value = false;
+const openViewModal = (user: UserRecord) => {
+    selectedUserForView.value = user;
+    isViewModalOpen.value = true;
 };
 
-// Submit Form
-const submitForm = () => {
-    if (isEditing.value && editingUserId.value) {
-        form.put(`/staff-accounts/${editingUserId.value}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                closeModal();
-            },
-        });
-    } else {
-        form.post('/staff-accounts', {
-            preserveScroll: true,
-            onSuccess: () => {
-                closeModal();
-            },
-        });
-    }
+const handleViewEdit = (user: UserRecord) => {
+    isViewModalOpen.value = false;
+    openEditModal(user);
 };
 
 // Quick Status Update
@@ -293,114 +226,13 @@ const filteredUsers = computed(() => {
 <template>
     <Head title="Staff Accounts - Caraga Regional Hospital" />
 
-    <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="flex h-full flex-1 flex-col gap-5 p-4 sm:p-6 lg:p-8">
         
-        <!-- Page Header -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-border/70">
-            <div class="space-y-1">
-                <div class="flex items-center gap-2.5">
-                    <div class="flex size-10 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400 shadow-xs">
-                        <Users class="size-5" />
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                            <span>Staff Accounts Management</span>
-                            <span class="inline-flex items-center rounded-full bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-900/50 px-2.5 py-0.5 text-xs font-semibold text-purple-700 dark:text-purple-400">
-                                {{ props.users.length }} Personnel Registered
-                            </span>
-                        </h1>
-                        <p class="text-xs sm:text-sm text-muted-foreground">
-                            Manage authorized medical technologists, phlebotomists, laboratory supervisors, and blood bank system administrators.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <Button 
-                    @click="openCreateModal"
-                    class="bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-xl shadow-md shadow-purple-900/20 gap-2 h-10 px-4 cursor-pointer transition-all active:scale-[0.99]"
-                >
-                    <UserPlus class="size-4" />
-                    <span>Add Staff Member</span>
-                </Button>
-            </div>
-        </div>
-
-        <!-- Quick Stats Overview -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            
-            <!-- Total Staff Members -->
-            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-4 border-l-purple-600 dark:bg-card dark:border-border/60">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Staff Personnel</span>
-                    <span class="rounded-xl bg-purple-50 p-2 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400">
-                        <Users class="size-4" />
-                    </span>
-                </div>
-                <div class="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-                    {{ props.stats.totalStaff }}
-                </div>
-                <span class="text-xs font-medium text-purple-600 mt-1 block">
-                    Active hospital workforce
-                </span>
-            </div>
-
-            <!-- Medical Technologists (RMTs) -->
-            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-4 border-l-blue-600 dark:bg-card dark:border-border/60">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Medical Technologists (RMTs)</span>
-                    <span class="rounded-xl bg-blue-50 p-2 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400">
-                        <HeartPulse class="size-4" />
-                    </span>
-                </div>
-                <div class="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-                    {{ props.stats.totalMedTechs }}
-                </div>
-                <span class="text-xs font-medium text-blue-600 mt-1 block">
-                    Laboratory & blood testing officers
-                </span>
-            </div>
-
-            <!-- Active Staff On Duty -->
-            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-4 border-l-emerald-500 dark:bg-card dark:border-border/60">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Staff On Duty</span>
-                    <span class="rounded-xl bg-emerald-50 p-2 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
-                        <UserCheck class="size-4" />
-                    </span>
-                </div>
-                <div class="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-                    {{ props.stats.activeStaff }}
-                </div>
-                <span class="text-xs font-medium text-emerald-600 mt-1 block">
-                    {{ props.stats.onLeaveStaff }} staff on official leave
-                </span>
-            </div>
-
-            <!-- System Administrators -->
-            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs border-l-4 border-l-rose-600 dark:bg-card dark:border-border/60">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">System Administrators</span>
-                    <span class="rounded-xl bg-rose-50 p-2 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400">
-                        <ShieldCheck class="size-4" />
-                    </span>
-                </div>
-                <div class="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-                    {{ props.stats.totalAdmins }}
-                </div>
-                <span class="text-xs font-medium text-rose-600 mt-1 block">
-                    Full system access permissions
-                </span>
-            </div>
-
-        </div>
-
-        <!-- Main Content Area / Search & Filters -->
+        <!-- Main Content Area / Search & Filters Card -->
         <div class="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-4">
             
-            <!-- Controls Bar -->
-            <div class="flex flex-col gap-3 pb-3 border-b border-border/70">
+            <!-- Controls Bar: Search, Dept, Status, and Add Staff Action -->
+            <div class="flex flex-col gap-3.5 pb-3 border-b border-border/70">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     
                     <!-- Search Input -->
@@ -408,19 +240,20 @@ const filteredUsers = computed(() => {
                         <Search class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                         <Input 
                             v-model="searchQuery" 
-                            placeholder="Search staff name, email, employee ID, role..." 
-                            class="pl-9 h-9.5 text-xs rounded-xl"
+                            placeholder="Search staff name, email, ID, role..." 
+                            class="pl-9 h-10 text-xs rounded-xl"
                         />
                     </div>
 
-                    <!-- Department & Status Dropdowns -->
-                    <div class="flex flex-wrap items-center gap-2">
+                    <!-- Department, Status Dropdowns and Add Button -->
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        
                         <!-- Department Filter -->
                         <div class="flex items-center gap-1.5 text-xs">
                             <span class="text-muted-foreground font-semibold text-[11px]">Dept:</span>
                             <select
                                 v-model="selectedDepartmentFilter"
-                                class="h-8.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium focus:ring-1 focus:ring-purple-600 outline-none max-w-[200px] truncate"
+                                class="h-9 px-2.5 rounded-lg border border-input bg-background text-xs font-medium focus:ring-1 focus:ring-purple-600 outline-none max-w-[190px] truncate"
                             >
                                 <option value="All">All Departments</option>
                                 <option v-for="dept in props.departmentsList" :key="dept" :value="dept">
@@ -434,7 +267,7 @@ const filteredUsers = computed(() => {
                             <span class="text-muted-foreground font-semibold text-[11px]">Status:</span>
                             <select
                                 v-model="selectedStatusFilter"
-                                class="h-8.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium focus:ring-1 focus:ring-purple-600 outline-none"
+                                class="h-9 px-2.5 rounded-lg border border-input bg-background text-xs font-medium focus:ring-1 focus:ring-purple-600 outline-none"
                             >
                                 <option value="All">All Statuses</option>
                                 <option value="Active">Active</option>
@@ -443,16 +276,25 @@ const filteredUsers = computed(() => {
                             </select>
                         </div>
 
-                        <!-- Reset Filter -->
+                        <!-- Reset Filter Button -->
                         <Button 
                             v-if="searchQuery || selectedRoleFilter !== 'All' || selectedStatusFilter !== 'All' || selectedDepartmentFilter !== 'All'"
                             size="sm"
                             variant="ghost"
                             @click="searchQuery = ''; selectedRoleFilter = 'All'; selectedStatusFilter = 'All'; selectedDepartmentFilter = 'All';"
-                            class="h-8.5 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 gap-1 px-2 cursor-pointer"
+                            class="h-9 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 gap-1 px-2.5 cursor-pointer"
                         >
                             <RefreshCw class="size-3" />
                             <span>Reset</span>
+                        </Button>
+
+                        <!-- Add Staff Member Button -->
+                        <Button 
+                            @click="openCreateModal"
+                            class="bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-xl shadow-sm gap-2 h-9 px-4 cursor-pointer transition-all active:scale-[0.99] ml-auto md:ml-2"
+                        >
+                            <UserPlus class="size-4" />
+                            <span>Add Staff Member</span>
                         </Button>
                     </div>
 
@@ -512,16 +354,21 @@ const filteredUsers = computed(() => {
                                 <div class="flex items-center gap-3">
                                     <div 
                                         :class="[
-                                            'flex size-9 items-center justify-center rounded-xl font-black text-xs shadow-2xs',
+                                            'flex size-9 items-center justify-center rounded-xl font-black text-xs shadow-2xs cursor-pointer',
                                             user.role?.includes('Administrator') ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' :
                                             user.role?.includes('Medical Technologist') || user.role?.includes('RMT') ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
                                             'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                                         ]"
+                                        @click="openViewModal(user)"
+                                        title="Click to view profile"
                                     >
                                         {{ getInitials(user.name) }}
                                     </div>
                                     <div>
-                                        <div class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <div 
+                                            class="font-bold text-gray-900 dark:text-white flex items-center gap-2 hover:text-purple-700 dark:hover:text-purple-400 cursor-pointer transition-colors"
+                                            @click="openViewModal(user)"
+                                        >
                                             <span>{{ user.name }}</span>
                                             <span 
                                                 v-if="user.id === props.currentUserId"
@@ -533,11 +380,11 @@ const filteredUsers = computed(() => {
                                         <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
                                             <span>{{ user.employee_id || 'CRH-EMP-' + user.id }}</span>
                                             <button 
-                                                @click="copyEmployeeId(user.employee_id)"
+                                                @click="copyEmployeeId(user.employee_id || 'CRH-EMP-' + user.id)"
                                                 class="text-muted-foreground hover:text-foreground cursor-pointer"
                                                 title="Copy Employee ID"
                                             >
-                                                <Check v-if="copiedEmployeeId === user.employee_id" class="size-3 text-emerald-600" />
+                                                <Check v-if="copiedEmployeeId === (user.employee_id || 'CRH-EMP-' + user.id)" class="size-3 text-emerald-600" />
                                                 <Copy v-else class="size-3" />
                                             </button>
                                         </div>
@@ -608,6 +455,18 @@ const filteredUsers = computed(() => {
                             <!-- Actions -->
                             <td class="px-4 py-3.5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    <!-- View Button -->
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        @click="openViewModal(user)"
+                                        title="View staff profile & permissions"
+                                        class="h-8 px-2.5 text-xs text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-neutral-800 gap-1 cursor-pointer"
+                                    >
+                                        <Eye class="size-3.5" />
+                                        <span>View</span>
+                                    </Button>
+
                                     <!-- Edit Button -->
                                     <Button 
                                         size="sm" 
@@ -664,249 +523,23 @@ const filteredUsers = computed(() => {
 
         </div>
 
-        <!-- WIDE ADD / EDIT STAFF MEMBER MODAL DIALOG (max-w-3xl) -->
-        <div 
-            v-if="isModalOpen"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto"
-        >
-            <div class="relative w-full max-w-3xl rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl transition-all my-8 max-h-[92vh] overflow-y-auto">
-                
-                <!-- Modal Header -->
-                <div class="flex items-center justify-between pb-5 border-b border-border">
-                    <div class="flex items-center gap-3">
-                        <div class="flex size-11 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400 shadow-xs">
-                            <UserPlus class="size-6" />
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
-                                <span>{{ isEditing ? 'Edit Staff Account' : 'Register New Staff Member' }}</span>
-                                <span class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-900/40">
-                                    {{ form.employee_id || props.nextEmployeeId }}
-                                </span>
-                            </h2>
-                            <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                                {{ isEditing ? 'Update personnel credentials, assigned role, and department status' : 'Create authorized credentials for medical technologists and laboratory officers' }}
-                            </p>
-                        </div>
-                    </div>
-                    <button 
-                        @click="closeModal"
-                        class="rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-                    >
-                        <X class="size-5" />
-                    </button>
-                </div>
+        <!-- CREATE / EDIT MODAL COMPONENT -->
+        <CreateModal 
+            :is-open="isCreateModalOpen"
+            :user-to-edit="selectedUserForEdit"
+            :roles-list="props.rolesList"
+            :departments-list="props.departmentsList"
+            :next-employee-id="props.nextEmployeeId"
+            @close="isCreateModalOpen = false"
+        />
 
-                <!-- Form -->
-                <form @submit.prevent="submitForm" class="space-y-6 pt-5">
-                    
-                    <!-- Section 1: Staff Identification -->
-                    <div class="space-y-3">
-                        <div class="text-xs font-extrabold uppercase tracking-wider text-purple-800 dark:text-purple-400 flex items-center gap-1.5 pb-1 border-b border-border/60">
-                            <Users class="size-3.5" />
-                            <span>Staff Identification & Credentials</span>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <!-- Full Name -->
-                            <div class="space-y-1.5 md:col-span-2">
-                                <Label for="staff_name" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    Full Name <span class="text-rose-600">*</span>
-                                </Label>
-                                <Input 
-                                    id="staff_name"
-                                    v-model="form.name"
-                                    placeholder="e.g. Alexander Salazar, RMT"
-                                    required
-                                    class="h-10 text-sm rounded-xl font-medium"
-                                />
-                                <div v-if="form.errors.name" class="text-xs text-red-600">{{ form.errors.name }}</div>
-                            </div>
-
-                            <!-- Employee ID -->
-                            <div class="space-y-1.5">
-                                <Label for="employee_id" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    Employee ID <span class="text-rose-600">*</span>
-                                </Label>
-                                <Input 
-                                    id="employee_id"
-                                    v-model="form.employee_id"
-                                    placeholder="e.g. CRH-EMP-001"
-                                    required
-                                    class="h-10 text-sm font-mono font-bold rounded-xl"
-                                />
-                                <div v-if="form.errors.employee_id" class="text-xs text-red-600">{{ form.errors.employee_id }}</div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Email -->
-                            <div class="space-y-1.5">
-                                <Label for="staff_email" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    Hospital Email Address <span class="text-rose-600">*</span>
-                                </Label>
-                                <Input 
-                                    id="staff_email"
-                                    type="email"
-                                    v-model="form.email"
-                                    placeholder="e.g. asalazar@crh.gov.ph"
-                                    required
-                                    class="h-10 text-sm font-mono rounded-xl"
-                                />
-                                <div v-if="form.errors.email" class="text-xs text-red-600">{{ form.errors.email }}</div>
-                            </div>
-
-                            <!-- Phone Number -->
-                            <div class="space-y-1.5">
-                                <Label for="phone_number" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    Contact / Mobile Number
-                                </Label>
-                                <Input 
-                                    id="phone_number"
-                                    v-model="form.phone_number"
-                                    placeholder="e.g. 0917-445-9012"
-                                    class="h-10 text-sm font-mono rounded-xl"
-                                />
-                                <div v-if="form.errors.phone_number" class="text-xs text-red-600">{{ form.errors.phone_number }}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 2: Role & Department Assignment -->
-                    <div class="space-y-3">
-                        <div class="text-xs font-extrabold uppercase tracking-wider text-purple-800 dark:text-purple-400 flex items-center gap-1.5 pb-1 border-b border-border/60">
-                            <Building class="size-3.5" />
-                            <span>Role & Department Assignment</span>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <!-- Role -->
-                            <div class="space-y-1.5">
-                                <Label for="role" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    Designated Role <span class="text-rose-600">*</span>
-                                </Label>
-                                <select
-                                    id="role"
-                                    v-model="form.role"
-                                    required
-                                    class="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm font-semibold focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 outline-none"
-                                >
-                                    <option v-for="role in props.rolesList" :key="role" :value="role">
-                                        {{ role }}
-                                    </option>
-                                </select>
-                                <div v-if="form.errors.role" class="text-xs text-red-600">{{ form.errors.role }}</div>
-                            </div>
-
-                            <!-- Department -->
-                            <div class="space-y-1.5">
-                                <Label for="department" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    Department / Section <span class="text-rose-600">*</span>
-                                </Label>
-                                <select
-                                    id="department"
-                                    v-model="form.department"
-                                    required
-                                    class="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 outline-none"
-                                >
-                                    <option v-for="dept in props.departmentsList" :key="dept" :value="dept">
-                                        {{ dept }}
-                                    </option>
-                                </select>
-                                <div v-if="form.errors.department" class="text-xs text-red-600">{{ form.errors.department }}</div>
-                            </div>
-
-                            <!-- Status -->
-                            <div class="space-y-1.5">
-                                <Label for="staff_status" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    Account Status <span class="text-rose-600">*</span>
-                                </Label>
-                                <select
-                                    id="staff_status"
-                                    v-model="form.status"
-                                    required
-                                    class="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm font-semibold focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 outline-none"
-                                >
-                                    <option value="Active">Active</option>
-                                    <option value="On Leave">On Leave</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
-                                <div v-if="form.errors.status" class="text-xs text-red-600">{{ form.errors.status }}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 3: Security & Password -->
-                    <div class="space-y-3">
-                        <div class="text-xs font-extrabold uppercase tracking-wider text-purple-800 dark:text-purple-400 flex items-center justify-between pb-1 border-b border-border/60">
-                            <span class="flex items-center gap-1.5">
-                                <Key class="size-3.5" />
-                                <span>Security & Login Password</span>
-                            </span>
-                            <span v-if="isEditing" class="text-[11px] font-normal text-muted-foreground italic">
-                                Leave blank to maintain current password
-                            </span>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Password -->
-                            <div class="space-y-1.5">
-                                <Label for="password" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    {{ isEditing ? 'New Password (Optional)' : 'Login Password' }} <span v-if="!isEditing" class="text-rose-600">*</span>
-                                </Label>
-                                <Input 
-                                    id="password"
-                                    type="password"
-                                    v-model="form.password"
-                                    :placeholder="isEditing ? '•••••••• (Leave blank to keep unchanged)' : 'Minimum 6 characters'"
-                                    :required="!isEditing"
-                                    class="h-10 text-sm rounded-xl font-mono"
-                                />
-                                <div v-if="form.errors.password" class="text-xs text-red-600">{{ form.errors.password }}</div>
-                            </div>
-
-                            <!-- Confirm Password -->
-                            <div class="space-y-1.5">
-                                <Label for="password_confirmation" class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                    Confirm Password <span v-if="!isEditing || form.password" class="text-rose-600">*</span>
-                                </Label>
-                                <Input 
-                                    id="password_confirmation"
-                                    type="password"
-                                    v-model="form.password_confirmation"
-                                    placeholder="Re-enter password"
-                                    :required="!isEditing || !!form.password"
-                                    class="h-10 text-sm rounded-xl font-mono"
-                                />
-                                <div v-if="form.errors.password_confirmation" class="text-xs text-red-600">{{ form.errors.password_confirmation }}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex items-center justify-end gap-3 pt-5 border-t border-border">
-                        <Button 
-                            type="button" 
-                            variant="outline" 
-                            @click="closeModal"
-                            class="h-10 px-5 rounded-xl cursor-pointer"
-                        >
-                            Cancel
-                        </Button>
-                        <Button 
-                            type="submit" 
-                            :disabled="form.processing"
-                            class="h-10 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-semibold px-6 shadow-sm gap-2 cursor-pointer"
-                        >
-                            <Spinner v-if="form.processing" class="size-4" />
-                            <span>{{ isEditing ? 'Update Staff Account' : 'Register Staff Member' }}</span>
-                        </Button>
-                    </div>
-
-                </form>
-
-            </div>
-        </div>
+        <!-- VIEW MODAL COMPONENT -->
+        <ViewModal 
+            :is-open="isViewModalOpen"
+            :user="selectedUserForView"
+            @close="isViewModalOpen = false"
+            @edit="handleViewEdit"
+        />
 
     </div>
 </template>

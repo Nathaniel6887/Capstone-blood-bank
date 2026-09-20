@@ -3,31 +3,26 @@ import { Link } from '@inertiajs/vue3';
 import { 
     LayoutGrid, 
     Droplets, 
-    HeartPulse, 
-    FileText, 
-    Users,
-    BookOpen, 
-    FolderGit2 
+    SquarePlus, 
+    BarChart3, 
+    Users 
 } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
-import NavUser from '@/components/NavUser.vue';
 import {
     Sidebar,
     SidebarContent,
-    SidebarFooter,
     SidebarHeader,
     SidebarMenu,
-    SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Overview',
         href: dashboard(),
         icon: LayoutGrid,
     },
@@ -39,12 +34,12 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Blood Consumption',
         href: '/blood-consumtion',
-        icon: HeartPulse,
+        icon: SquarePlus,
     },
     {
         title: 'Reports',
         href: '/reports',
-        icon: FileText,
+        icon: BarChart3,
     },
     {
         title: 'Staff Accounts',
@@ -52,28 +47,15 @@ const mainNavItems: NavItem[] = [
         icon: Users,
     },
 ];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
-        <SidebarHeader>
+    <Sidebar collapsible="icon" variant="sidebar" class="border-r border-slate-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+        <SidebarHeader class="h-16 flex items-center justify-center border-b border-slate-100 dark:border-neutral-800 px-4">
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                    <SidebarMenuButton size="lg" as-child class="hover:bg-transparent">
+                        <Link :href="dashboard()" class="flex items-center gap-2.5">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -81,14 +63,9 @@ const footerNavItems: NavItem[] = [
             </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent class="p-3">
             <NavMain :items="mainNavItems" />
         </SidebarContent>
-
-        <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
-            <NavUser />
-        </SidebarFooter>
     </Sidebar>
     <slot />
 </template>

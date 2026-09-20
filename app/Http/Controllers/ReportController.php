@@ -6,6 +6,7 @@ use App\Models\BloodDonor;
 use App\Models\BloodIssue;
 use App\Models\BloodReport;
 use App\Models\Municipality;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,7 +14,7 @@ use Inertia\Response;
 class ReportController extends Controller
 {
     /**
-     * Display a listing of blood reports inside and outside Caraga.
+     * Display a listing of blood reports inside and outside Caraga and Quarterly New Donor Reports.
      */
     public function index(): Response
     {
@@ -21,26 +22,13 @@ class ReportController extends Controller
             ->latest('submitted_at')
             ->get();
 
-        // Intra-Regional Data (Inside Caraga)
-        $insideCaragaSummary = [
-            'totalDonors' => BloodDonor::count(),
-            'totalDonations' => (int) BloodDonor::sum('total_donations'),
-            'totalIssues' => (int) BloodIssue::sum('units_issued'),
-            'activeMunicipalities' => BloodDonor::distinct('municipality')->count('municipality'),
-            'donorsByBloodType' => BloodDonor::select('blood_type')
-                ->selectRaw('count(*) as count, sum(total_donations) as total_bags')
-                ->groupBy('blood_type')
-                ->get(),
-            'municipalitiesByProvince' => Municipality::all()->groupBy('province'),
-        ];
+        $donors = BloodDonor::query()
+            ->latest('created_at')
+            ->get();
 
-        // Inter-Regional Data (Outside Caraga)
-        $outsideCaragaSummary = [
-            'externalReportsCount' => BloodReport::outsideCaraga()->count(),
-            'externalUnitsAccounted' => (int) BloodReport::outsideCaraga()->sum('blood_units_count'),
-            'partnerFacilitiesCount' => BloodReport::outsideCaraga()->distinct('facility_name')->count('facility_name'),
-            'partnerRegionsCount' => BloodReport::outsideCaraga()->distinct('province_region')->count('province_region'),
-        ];
+        $issues = BloodIssue::query()
+            ->latest('issued_at')
+            ->get();
 
         $stats = [
             'totalReports' => BloodReport::count(),
@@ -49,6 +37,9 @@ class ReportController extends Controller
             'totalUnitsAccounted' => (int) BloodReport::sum('blood_units_count'),
             'pendingVerifications' => BloodReport::whereIn('status', ['Pending Review', 'Received'])->count(),
             'verifiedReports' => BloodReport::where('status', 'Verified')->count(),
+            'totalDonors' => BloodDonor::count(),
+            'totalDonations' => (int) BloodDonor::sum('total_donations'),
+            'totalIssues' => (int) BloodIssue::sum('units_issued'),
         ];
 
         $provincesList = [
@@ -70,31 +61,34 @@ class ReportController extends Controller
         ];
 
         $reportTypesList = [
-            'Monthly Blood Collection Turnout',
-            'Inter-Regional Blood Transfer & Requisition',
-            'Hospital Ward Consumption Audit',
-            'Serological Safety & Screening Summary',
-            'Emergency Disaster Blood Allocation',
-            'Mobile Blood Drive Turnout Audit',
+            'Quarterly New Donor Report',
+            'Monthly Donor Report',
+            'Yearly Donor Report',
+            'Donor Age Report',
+            'Gender Report',
+            'Blood Consumption Report',
+            'Inside CRH / Caraga Regional Reports',
+            'Outside CRH / Inter-Regional Transfers',
         ];
 
         $count = BloodReport::count() + 1;
         $nextReportCode = 'RPT-CRH-' . date('Y') . '-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
 
         return Inertia::render('reports/Index', [
+            'donors' => $donors,
             'reports' => $reports,
+            'issues' => $issues,
             'stats' => $stats,
-            'insideCaragaSummary' => $insideCaragaSummary,
-            'outsideCaragaSummary' => $outsideCaragaSummary,
             'provincesList' => $provincesList,
             'outsideRegionsList' => $outsideRegionsList,
             'reportTypesList' => $reportTypesList,
             'nextReportCode' => $nextReportCode,
+            'municipalities' => Municipality::all()->groupBy('province'),
         ]);
     }
 
     /**
-     * Store a newly received/logged blood report (Inside or Outside Caraga).
+     * Store a newly received/logged blood report (Inside or Outside Caraga/CRH).
      */
     public function store(Request $request)
     {
